@@ -22,14 +22,14 @@ def make_panel(last_updated_ms=995_000):
 
 def make_entity(key, panel=None, uptime_ms=1_000_000):
     coordinator = SimpleNamespace(
-        data=TigoTellData("0.2.9", "fs", "build", uptime_ms,
-                          {}, (panel,) if panel else ()),
+        data=TigoTellData("0.2.9", "fs", "build", uptime_ms, {}, (panel,) if panel else ()),
         client=SimpleNamespace(base_url="http://tigo.local:80"),
     )
     entity = object.__new__(TigoPanelSensor)
     entity._barcode = "ABC123"
     entity.entity_description = next(
-        description for description in DESCRIPTIONS if description.key == key)
+        description for description in DESCRIPTIONS if description.key == key
+    )
     entity.coordinator = coordinator
     return entity
 
@@ -44,10 +44,10 @@ def test_panel_descriptions_use_standard_home_assistant_metadata():
         "signal_strength",
         "data_age",
     }
-    assert all(hasattr(description, "entity_registry_enabled_default")
-               for description in DESCRIPTIONS)
-    assert not any(description.device_class ==
-                   "timestamp" for description in DESCRIPTIONS)
+    assert all(
+        hasattr(description, "entity_registry_enabled_default") for description in DESCRIPTIONS
+    )
+    assert not any(description.device_class == "timestamp" for description in DESCRIPTIONS)
 
 
 def test_signal_strength_is_qualitative():
