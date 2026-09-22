@@ -16,6 +16,9 @@ dependencies = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 
+[tool.hatch.build.targets.wheel]
+packages = ["custom_components/tigotell"]
+
 [tool.ruff]
 target-version = "py312"
 line-length = 100
