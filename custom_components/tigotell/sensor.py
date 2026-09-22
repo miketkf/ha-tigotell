@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
-from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+    SensorStateClass,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     EntityCategory,
@@ -15,8 +19,10 @@ from homeassistant.const import (
     UnitOfElectricPotential,
     UnitOfPower,
     UnitOfTemperature,
+    UnitOfTime,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -25,66 +31,64 @@ from tigotell_client import TigoPanel
 from . import TigoTellCoordinator, TigoTellRuntimeData
 from .const import DOMAIN
 
-
-@dataclass(frozen=True, slots=True)
-class PanelSensorDescription:
-    key: str
-    name: str
-    icon: str
-    unit: str | None = None
-    device_class: SensorDeviceClass | None = None
-    state_class: SensorStateClass | None = None
-    diagnostic: bool = False
+_LOGGER = logging.getLogger(__name__)
 
 
 DESCRIPTIONS = (
-    PanelSensorDescription(
-        "power",
-        "Power",
-        "mdi:solar-power",
-        UnitOfPower.WATT,
-        SensorDeviceClass.POWER,
-        SensorStateClass.MEASUREMENT,
+    SensorEntityDescription(
+        key="power",
+        name="Power",
+        icon="mdi:solar-power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
-    PanelSensorDescription(
-        "voltage_in",
-        "PV voltage",
-        "mdi:flash",
-        UnitOfElectricPotential.VOLT,
-        SensorDeviceClass.VOLTAGE,
-        SensorStateClass.MEASUREMENT,
+    SensorEntityDescription(
+        key="voltage_in",
+        name="PV voltage",
+        icon="mdi:flash",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
-    PanelSensorDescription(
-        "current_in",
-        "PV current",
-        "mdi:current-dc",
-        UnitOfElectricCurrent.AMPERE,
-        SensorDeviceClass.CURRENT,
-        SensorStateClass.MEASUREMENT,
+    SensorEntityDescription(
+        key="current_in",
+        name="PV current",
+        icon="mdi:current-dc",
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
-    PanelSensorDescription(
-        "voltage_out",
-        "Output voltage",
-        "mdi:flash-outline",
-        UnitOfElectricPotential.VOLT,
-        SensorDeviceClass.VOLTAGE,
-        SensorStateClass.MEASUREMENT,
+    SensorEntityDescription(
+        key="voltage_out",
+        name="Output voltage",
+        icon="mdi:flash-outline",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
-    PanelSensorDescription(
-        "temperature",
-        "Temperature",
-        "mdi:thermometer",
-        UnitOfTemperature.CELSIUS,
-        SensorDeviceClass.TEMPERATURE,
-        SensorStateClass.MEASUREMENT,
+    SensorEntityDescription(
+        key="temperature",
+        name="Temperature",
+        icon="mdi:thermometer",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
-    PanelSensorDescription("signal_strength", "Signal strength", "mdi:signal", diagnostic=True),
-    PanelSensorDescription(
-        "last_update",
-        "Last update",
-        "mdi:clock-outline",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        diagnostic=True,
+    SensorEntityDescription(
+        key="signal_strength",
+        name="Signal strength",
+        icon="mdi:signal",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    SensorEntityDescription(
+        key="data_age",
+        name="Data age",
+        icon="mdi:clock-outline",
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
 )
 
@@ -95,18 +99,26 @@ async def async_setup_entry(
     """Set up TigoTell sensors."""
     runtime: TigoTellRuntimeData = entry.runtime_data
     coordinator = runtime.coordinator
-    known: set[tuple[str, str]] = set()
 
     @callback
     def add_new_panels() -> None:
+        registered_unique_ids = {
+            entity.unique_id
+            for entity in er.async_get(hass).entities.values()
+            if entity.platform_domain == DOMAIN
+        }
         new_entities = []
         for panel in coordinator.data.panels if coordinator.data else ():
             for description in DESCRIPTIONS:
-                key = (panel.barcode, description.key)
-                if key not in known:
-                    known.add(key)
+                unique_id = f"{panel.barcode}_{description.key}"
+                if unique_id not in registered_unique_ids:
                     new_entities.append(TigoPanelSensor(coordinator, panel.barcode, description))
         if new_entities:
+            _LOGGER.debug(
+                "Creating %d entities for %d TigoTell panels",
+                len(new_entities),
+                len(coordinator.data.panels),
+            )
             async_add_entities(new_entities)
 
     add_new_panels()
@@ -121,19 +133,13 @@ class TigoPanelSensor(CoordinatorEntity[TigoTellCoordinator], SensorEntity):
     _attr_has_entity_name = True
 
     def __init__(
-        self, coordinator: TigoTellCoordinator, barcode: str, description: PanelSensorDescription
+        self, coordinator: TigoTellCoordinator, barcode: str, description: SensorEntityDescription
     ) -> None:
         super().__init__(coordinator)
         self._barcode = barcode
         self.entity_description = description
         self._attr_unique_id = f"{barcode}_{description.key}"
         self._attr_name = description.name
-        self._attr_icon = description.icon
-        self._attr_native_unit_of_measurement = description.unit
-        self._attr_device_class = description.device_class
-        self._attr_state_class = description.state_class
-        if description.diagnostic:
-            self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, barcode)},
             name=f"Tigo Panel {barcode}",
@@ -173,12 +179,12 @@ class TigoPanelSensor(CoordinatorEntity[TigoTellCoordinator], SensorEntity):
                 return panel.temperature
             case "signal_strength":
                 return panel.signal_strength
-            case "last_update":
+            case "data_age":
                 uptime = self.coordinator.data.uptime_ms
                 age_ms = uptime - panel.last_updated_ms
                 if age_ms < 0:
                     return None
-                return datetime.now(UTC) - timedelta(milliseconds=age_ms)
+                return age_ms / 1000
             case _:
                 return None
 
