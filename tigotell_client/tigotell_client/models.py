@@ -51,6 +51,8 @@ class TigoTellData:
 
 def parse_snapshot(payload: dict[str, Any]) -> TigoTellData:
     """Parse a TigoTell /json response into stable models."""
+    if not isinstance(payload, dict):
+        raise ValueError("top-level response must be an object")
     nodes_by_id = {
         int(node["pv_node_id"]): node for node in payload.get("nodes", []) if "pv_node_id" in node
     }

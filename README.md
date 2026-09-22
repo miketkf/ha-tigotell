@@ -52,7 +52,7 @@ The config flow tests `/json` before creating the entry.
 
 The HA integration uses the small `tigotell-client` package for communication with TigoTell. This follows Home Assistant's current integration architecture for external-device communication. The package is published separately to PyPI and is installed automatically by Home Assistant from the integration's `manifest.json` dependency.
 
-Before publishing this repository, publish `tigotell_client/` as `tigotell-client` version `0.1.0` to PyPI, then keep the matching requirement in `manifest.json`.
+Before publishing this repository, publish `tigotell_client/` as `tigotell-client` version `0.1.1` to PyPI, then keep the matching requirement in `manifest.json`.
 
 ## Polling
 
