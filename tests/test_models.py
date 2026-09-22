@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+
 from tigotell_client.models import parse_snapshot
 
 

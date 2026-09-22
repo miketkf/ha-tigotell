@@ -1,12 +1,12 @@
 """Async client and models for gongloo/TigoTell."""
 
-from .client import TigoTellClient, TigoTellError, TigoTellConnectionError
-from .models import TigoTellData, TigoPanel
+from .client import TigoTellClient, TigoTellConnectionError, TigoTellError
+from .models import TigoPanel, TigoTellData
 
 __all__ = [
+    "TigoPanel",
     "TigoTellClient",
-    "TigoTellError",
     "TigoTellConnectionError",
     "TigoTellData",
-    "TigoPanel",
+    "TigoTellError",
 ]

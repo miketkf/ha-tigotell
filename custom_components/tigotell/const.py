@@ -1,4 +1,5 @@
 """Constants for TigoTell."""
+
 DOMAIN = "tigotell"
 DEFAULT_PORT = 80
 DEFAULT_SCAN_INTERVAL = 10

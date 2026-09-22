@@ -1,9 +1,10 @@
 """TigoTell Home Assistant integration."""
+
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import timedelta
-import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -16,11 +17,14 @@ from .const import CONF_HOST, CONF_PORT, DEFAULT_SCAN_INTERVAL, DOMAIN, PLATFORM
 
 _LOGGER = logging.getLogger(__name__)
 
+
 @dataclass(slots=True)
 class TigoTellRuntimeData:
     """Runtime data for a config entry."""
+
     client: TigoTellClient
-    coordinator: "TigoTellCoordinator"
+    coordinator: TigoTellCoordinator
+
 
 class TigoTellCoordinator(DataUpdateCoordinator[TigoTellData]):
     """Fetch TigoTell snapshots."""
@@ -40,6 +44,7 @@ class TigoTellCoordinator(DataUpdateCoordinator[TigoTellData]):
         except TigoTellConnectionError as err:
             raise UpdateFailed(str(err)) from err
 
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up TigoTell from a config entry."""
     session = async_get_clientsession(hass)
@@ -49,6 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.runtime_data = TigoTellRuntimeData(client, coordinator)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
+
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload TigoTell."""

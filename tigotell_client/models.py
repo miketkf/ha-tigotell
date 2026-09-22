@@ -1,12 +1,15 @@
 """Data models for TigoTell's /json endpoint."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
 
+
 @dataclass(frozen=True, slots=True)
 class TigoPanel:
     """One Tigo optimizer/panel."""
+
     barcode: str
     pv_node_id: int
     address: int
@@ -33,9 +36,11 @@ class TigoPanel:
             return "Medium"
         return "Low"
 
+
 @dataclass(frozen=True, slots=True)
 class TigoTellData:
     """Snapshot returned by TigoTell."""
+
     version: str
     fs_version: str
     build_timestamp: str
@@ -47,9 +52,7 @@ class TigoTellData:
 def parse_snapshot(payload: dict[str, Any]) -> TigoTellData:
     """Parse a TigoTell /json response into stable models."""
     nodes_by_id = {
-        int(node["pv_node_id"]): node
-        for node in payload.get("nodes", [])
-        if "pv_node_id" in node
+        int(node["pv_node_id"]): node for node in payload.get("nodes", []) if "pv_node_id" in node
     }
     panels: list[TigoPanel] = []
     for raw in payload.get("power", []):
@@ -68,7 +71,9 @@ def parse_snapshot(payload: dict[str, Any]) -> TigoTellData:
                 duty_cycle=int(raw["duty_cycle"]),
                 rssi=int(raw["rssi"]),
                 last_updated_ms=int(raw["last_updated"]),
-                last_seen_ms=(int(node["last_seen_ms"]) if node.get("last_seen_ms") is not None else None),
+                last_seen_ms=(
+                    int(node["last_seen_ms"]) if node.get("last_seen_ms") is not None else None
+                ),
             )
         )
     panels.sort(key=lambda panel: panel.barcode)

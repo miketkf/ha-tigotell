@@ -1,21 +1,30 @@
 """TigoTell sensors."""
+
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone, timedelta
-from typing import Any, Callable
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfElectricCurrent, UnitOfElectricPotential, UnitOfPower, UnitOfTemperature
+from homeassistant.const import (
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
+    UnitOfPower,
+    UnitOfTemperature,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_category import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from tigotell_client import TigoPanel
+
 from . import TigoTellCoordinator, TigoTellRuntimeData
 from .const import DOMAIN
+
 
 @dataclass(frozen=True, slots=True)
 class PanelSensorDescription:
@@ -27,17 +36,62 @@ class PanelSensorDescription:
     state_class: SensorStateClass | None = None
     diagnostic: bool = False
 
+
 DESCRIPTIONS = (
-    PanelSensorDescription("power", "Power", "mdi:solar-power", UnitOfPower.WATT, SensorDeviceClass.POWER, SensorStateClass.MEASUREMENT),
-    PanelSensorDescription("voltage_in", "PV voltage", "mdi:flash", UnitOfElectricPotential.VOLT, SensorDeviceClass.VOLTAGE, SensorStateClass.MEASUREMENT),
-    PanelSensorDescription("current_in", "PV current", "mdi:current-dc", UnitOfElectricCurrent.AMPERE, SensorDeviceClass.CURRENT, SensorStateClass.MEASUREMENT),
-    PanelSensorDescription("voltage_out", "Output voltage", "mdi:flash-outline", UnitOfElectricPotential.VOLT, SensorDeviceClass.VOLTAGE, SensorStateClass.MEASUREMENT),
-    PanelSensorDescription("temperature", "Temperature", "mdi:thermometer", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT),
+    PanelSensorDescription(
+        "power",
+        "Power",
+        "mdi:solar-power",
+        UnitOfPower.WATT,
+        SensorDeviceClass.POWER,
+        SensorStateClass.MEASUREMENT,
+    ),
+    PanelSensorDescription(
+        "voltage_in",
+        "PV voltage",
+        "mdi:flash",
+        UnitOfElectricPotential.VOLT,
+        SensorDeviceClass.VOLTAGE,
+        SensorStateClass.MEASUREMENT,
+    ),
+    PanelSensorDescription(
+        "current_in",
+        "PV current",
+        "mdi:current-dc",
+        UnitOfElectricCurrent.AMPERE,
+        SensorDeviceClass.CURRENT,
+        SensorStateClass.MEASUREMENT,
+    ),
+    PanelSensorDescription(
+        "voltage_out",
+        "Output voltage",
+        "mdi:flash-outline",
+        UnitOfElectricPotential.VOLT,
+        SensorDeviceClass.VOLTAGE,
+        SensorStateClass.MEASUREMENT,
+    ),
+    PanelSensorDescription(
+        "temperature",
+        "Temperature",
+        "mdi:thermometer",
+        UnitOfTemperature.CELSIUS,
+        SensorDeviceClass.TEMPERATURE,
+        SensorStateClass.MEASUREMENT,
+    ),
     PanelSensorDescription("signal_strength", "Signal strength", "mdi:signal", diagnostic=True),
-    PanelSensorDescription("last_update", "Last update", "mdi:clock-outline", device_class=SensorDeviceClass.TIMESTAMP, diagnostic=True),
+    PanelSensorDescription(
+        "last_update",
+        "Last update",
+        "mdi:clock-outline",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        diagnostic=True,
+    ),
 )
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: Callable) -> None:
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: Callable
+) -> None:
     """Set up TigoTell sensors."""
     runtime: TigoTellRuntimeData = entry.runtime_data
     coordinator = runtime.coordinator
@@ -60,11 +114,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     async_add_entities([TigoTotalPowerSensor(coordinator), TigoPanelCountSensor(coordinator)])
 
+
 class TigoPanelSensor(CoordinatorEntity[TigoTellCoordinator], SensorEntity):
     """A TigoTell panel measurement."""
+
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: TigoTellCoordinator, barcode: str, description: PanelSensorDescription) -> None:
+    def __init__(
+        self, coordinator: TigoTellCoordinator, barcode: str, description: PanelSensorDescription
+    ) -> None:
         super().__init__(coordinator)
         self._barcode = barcode
         self.entity_description = description
@@ -87,7 +145,11 @@ class TigoPanelSensor(CoordinatorEntity[TigoTellCoordinator], SensorEntity):
     @property
     def panel(self) -> TigoPanel | None:
         """Return current panel data."""
-        return next((p for p in self.coordinator.data.panels if p.barcode == self._barcode), None) if self.coordinator.data else None
+        return (
+            next((p for p in self.coordinator.data.panels if p.barcode == self._barcode), None)
+            if self.coordinator.data
+            else None
+        )
 
     @property
     def available(self) -> bool:
@@ -99,19 +161,26 @@ class TigoPanelSensor(CoordinatorEntity[TigoTellCoordinator], SensorEntity):
         if panel is None:
             return None
         match self.entity_description.key:
-            case "power": return round(panel.power, 2)
-            case "voltage_in": return panel.voltage_in
-            case "current_in": return panel.current_in
-            case "voltage_out": return panel.voltage_out
-            case "temperature": return panel.temperature
-            case "signal_strength": return panel.signal_strength
+            case "power":
+                return round(panel.power, 2)
+            case "voltage_in":
+                return panel.voltage_in
+            case "current_in":
+                return panel.current_in
+            case "voltage_out":
+                return panel.voltage_out
+            case "temperature":
+                return panel.temperature
+            case "signal_strength":
+                return panel.signal_strength
             case "last_update":
                 uptime = self.coordinator.data.uptime_ms
                 age_ms = uptime - panel.last_updated_ms
                 if age_ms < 0:
                     return None
-                return datetime.now(timezone.utc) - timedelta(milliseconds=age_ms)
-            case _: return None
+                return datetime.now(UTC) - timedelta(milliseconds=age_ms)
+            case _:
+                return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -127,11 +196,15 @@ class TigoPanelSensor(CoordinatorEntity[TigoTellCoordinator], SensorEntity):
             "last_seen_ms": panel.last_seen_ms,
         }
 
+
 class TigoSystemEntity(CoordinatorEntity[TigoTellCoordinator], SensorEntity):
     """Base for TigoTell system sensors."""
+
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: TigoTellCoordinator, name: str, unique_id: str, icon: str) -> None:
+    def __init__(
+        self, coordinator: TigoTellCoordinator, name: str, unique_id: str, icon: str
+    ) -> None:
         super().__init__(coordinator)
         self._attr_name = name
         self._attr_unique_id = unique_id
@@ -144,8 +217,10 @@ class TigoSystemEntity(CoordinatorEntity[TigoTellCoordinator], SensorEntity):
             configuration_url=f"{coordinator.client.base_url}/",
         )
 
+
 class TigoTotalPowerSensor(TigoSystemEntity):
     """Total instantaneous panel power."""
+
     _attr_native_unit_of_measurement = UnitOfPower.WATT
     _attr_device_class = SensorDeviceClass.POWER
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -157,8 +232,10 @@ class TigoTotalPowerSensor(TigoSystemEntity):
     def native_value(self) -> float:
         return round(sum(panel.power for panel in self.coordinator.data.panels), 2)
 
+
 class TigoPanelCountSensor(TigoSystemEntity):
     """Number of panels currently reporting power data."""
+
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_native_unit_of_measurement = "panels"
 

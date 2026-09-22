@@ -1,4 +1,5 @@
 """HTTP client for TigoTell."""
+
 from __future__ import annotations
 
 from typing import Any
