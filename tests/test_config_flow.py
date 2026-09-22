@@ -9,7 +9,7 @@ from tigotell_client import TigoTellInvalidResponseError
 
 
 @pytest.mark.parametrize("port", [80, 80.0])
-async def test_config_flow_normalizes_port(hass, port):
+async def test_config_flow_normalizes_port(hass, enable_custom_integrations, port):
     with patch(
         "custom_components.tigotell.config_flow.TigoTellClient.async_get_data",
         new=AsyncMock(),
@@ -26,7 +26,7 @@ async def test_config_flow_normalizes_port(hass, port):
     assert result["data"][CONF_PORT] == 80
 
 
-async def test_config_flow_maps_invalid_response(hass):
+async def test_config_flow_maps_invalid_response(hass, enable_custom_integrations):
     with patch(
         "custom_components.tigotell.config_flow.TigoTellClient.async_get_data",
         new=AsyncMock(side_effect=TigoTellInvalidResponseError("bad data")),
@@ -43,7 +43,7 @@ async def test_config_flow_maps_invalid_response(hass):
     assert result["errors"] == {"base": "invalid_response"}
 
 
-async def test_config_flow_logs_unexpected_error(hass, caplog):
+async def test_config_flow_logs_unexpected_error(hass, enable_custom_integrations, caplog):
     with patch(
         "custom_components.tigotell.config_flow.TigoTellClient.async_get_data",
         new=AsyncMock(side_effect=RuntimeError("unexpected")),
