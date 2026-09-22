@@ -1,0 +1,242 @@
+views:
+  - type: sections
+    title: Solar panels
+    sections:
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Panel power
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000c265a4_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000c266c4_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000c28fc0_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000c01d56_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000c25de4_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000c264bb_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000c28fc8_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000c265b7_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000c28f45_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000c264bc_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000a97fac_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000c28fcf_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000c290e4_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000be981e_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000c26721_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000c0176b_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+          - type: gauge
+            entity: sensor.tigo_panel_04c05b4000c51dcb_power
+            min: 0
+            max: 390
+            needle: false
+            severity:
+              green: 200
+              yellow: 100
+              red: 0
+            name:
+              type: entity
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Last update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c265a4_last_update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c266c4_last_update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c28fc0_last_update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c01d56_last_update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c25de4_last_update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c264bb_last_update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c28fc8_last_update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c265b7_last_update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c28f45_last_update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c264bc_last_update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000a97fac_last_update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c28fcf_last_update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c290e4_last_update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000be981e_last_update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c26721_last_update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c0176b_last_update
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c51dcb_last_update
+    max_columns: 4
+    dense_section_placement: true
+    badges:
+      - type: entity
+        entity: sensor.tigotell_total_panel_power
+      - type: entity
+        entity: sensor.tigotell_reporting_panels

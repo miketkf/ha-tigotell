@@ -1,0 +1,17 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to TigoTell",
+        "description": "Enter the hostname or IP address of your TigoTell device.",
+        "data": {"host": "Host", "port": "Port"},
+        "data_description": {"host": "The local hostname or IP address of TigoTell.", "port": "The HTTP port exposed by TigoTell; normally 80."}
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to TigoTell.",
+      "invalid_response": "TigoTell returned an invalid /json response."
+    },
+    "abort": {"already_configured": "This TigoTell device is already configured."}
+  }
+}

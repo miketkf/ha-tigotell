@@ -1,0 +1,84 @@
+views:
+  - title: TigoTell
+    type: sections
+    max_columns: 3
+    dense_section_placement: true
+    badges:
+      - type: entity
+        entity: sensor.tigotell_total_panel_power
+      - type: entity
+        entity: sensor.tigotell_reporting_panels
+    sections:
+      - type: grid
+        column_span: 3
+        cards:
+          - type: heading
+            heading: Current panel power
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c265a4_power
+            name: Tigo panel 04C05B4000C265A4
+            vertical: false
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c266c4_power
+            name: Tigo panel 04C05B4000C266C4
+            vertical: false
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c28fc0_power
+            name: Tigo panel 04C05B4000C28FC0
+            vertical: false
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c01d56_power
+            name: Tigo panel 04C05B4000C01D56
+            vertical: false
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c25de4_power
+            name: Tigo panel 04C05B4000C25DE4
+            vertical: false
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c264bb_power
+            name: Tigo panel 04C05B4000C264BB
+            vertical: false
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c28fc8_power
+            name: Tigo panel 04C05B4000C28FC8
+            vertical: false
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c265b7_power
+            name: Tigo panel 04C05B4000C265B7
+            vertical: false
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c28f45_power
+            name: Tigo panel 04C05B4000C28F45
+            vertical: false
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c264bc_power
+            name: Tigo panel 04C05B4000C264BC
+            vertical: false
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000a97fac_power
+            name: Tigo panel 04C05B4000A97FAC
+            vertical: false
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c28fcf_power
+            name: Tigo panel 04C05B4000C28FCF
+            vertical: false
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c290e4_power
+            name: Tigo panel 04C05B4000C290E4
+            vertical: false
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000be981e_power
+            name: Tigo panel 04C05B4000BE981E
+            vertical: false
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c26721_power
+            name: Tigo panel 04C05B4000C26721
+            vertical: false
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c0176b_power
+            name: Tigo panel 04C05B4000C0176B
+            vertical: false
+          - type: tile
+            entity: sensor.tigo_panel_04c05b4000c51dcb_power
+            name: Tigo panel 04C05B4000C51DCB
+            vertical: false
