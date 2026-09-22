@@ -33,7 +33,6 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-
 DESCRIPTIONS = (
     SensorEntityDescription(
         key="power",
@@ -88,7 +87,8 @@ DESCRIPTIONS = (
         icon="mdi:clock-outline",
         native_unit_of_measurement=UnitOfTime.SECONDS,
         entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
+        suggested_display_precision=0,
     ),
 )
 
@@ -99,20 +99,31 @@ async def async_setup_entry(
     """Set up TigoTell sensors."""
     runtime: TigoTellRuntimeData = entry.runtime_data
     coordinator = runtime.coordinator
+    known: set[tuple[str, str]] = set()
 
     @callback
     def add_new_panels() -> None:
-        registered_unique_ids = {
-            entity.unique_id
-            for entity in er.async_get(hass).entities.values()
-            if entity.platform_domain == DOMAIN
-        }
+        """Add entities for newly discovered panels."""
+        registry = er.async_get(hass)
         new_entities = []
+
         for panel in coordinator.data.panels if coordinator.data else ():
             for description in DESCRIPTIONS:
+                key = (panel.barcode, description.key)
+                if key in known:
+                    continue
+
                 unique_id = f"{panel.barcode}_{description.key}"
-                if unique_id not in registered_unique_ids:
-                    new_entities.append(TigoPanelSensor(coordinator, panel.barcode, description))
+
+                # EntityRegistry uses `platform` for the integration domain.
+                # `platform_domain` does not exist in HA Core 2026.9.3.
+                if registry.async_get_entity_id("sensor", DOMAIN, unique_id):
+                    known.add(key)
+                    continue
+
+                new_entities.append(TigoPanelSensor(coordinator, panel.barcode, description))
+                known.add(key)
+
         if new_entities:
             _LOGGER.debug(
                 "Creating %d entities for %d TigoTell panels",
@@ -133,8 +144,12 @@ class TigoPanelSensor(CoordinatorEntity[TigoTellCoordinator], SensorEntity):
     _attr_has_entity_name = True
 
     def __init__(
-        self, coordinator: TigoTellCoordinator, barcode: str, description: SensorEntityDescription
+        self,
+        coordinator: TigoTellCoordinator,
+        barcode: str,
+        description: SensorEntityDescription,
     ) -> None:
+        """Initialize a panel sensor."""
         super().__init__(coordinator)
         self._barcode = barcode
         self.entity_description = description
@@ -152,20 +167,26 @@ class TigoPanelSensor(CoordinatorEntity[TigoTellCoordinator], SensorEntity):
     def panel(self) -> TigoPanel | None:
         """Return current panel data."""
         return (
-            next((p for p in self.coordinator.data.panels if p.barcode == self._barcode), None)
+            next(
+                (p for p in self.coordinator.data.panels if p.barcode == self._barcode),
+                None,
+            )
             if self.coordinator.data
             else None
         )
 
     @property
     def available(self) -> bool:
+        """Return whether the panel has current data."""
         return super().available and self.panel is not None
 
     @property
     def native_value(self) -> Any:
+        """Return the current sensor value."""
         panel = self.panel
         if panel is None:
             return None
+
         match self.entity_description.key:
             case "power":
                 return round(panel.power, 2)
@@ -190,9 +211,11 @@ class TigoPanelSensor(CoordinatorEntity[TigoTellCoordinator], SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        """Return diagnostic panel attributes."""
         panel = self.panel
         if panel is None:
             return {}
+
         return {
             "barcode": panel.barcode,
             "pv_node_id": panel.pv_node_id,
@@ -211,6 +234,7 @@ class TigoSystemEntity(CoordinatorEntity[TigoTellCoordinator], SensorEntity):
     def __init__(
         self, coordinator: TigoTellCoordinator, name: str, unique_id: str, icon: str
     ) -> None:
+        """Initialize a system sensor."""
         super().__init__(coordinator)
         self._attr_name = name
         self._attr_unique_id = unique_id
@@ -232,10 +256,12 @@ class TigoTotalPowerSensor(TigoSystemEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator: TigoTellCoordinator) -> None:
+        """Initialize the total power sensor."""
         super().__init__(coordinator, "Total panel power", "total_panel_power", "mdi:solar-power")
 
     @property
     def native_value(self) -> float:
+        """Return total instantaneous panel power."""
         return round(sum(panel.power for panel in self.coordinator.data.panels), 2)
 
 
@@ -246,8 +272,10 @@ class TigoPanelCountSensor(TigoSystemEntity):
     _attr_native_unit_of_measurement = "panels"
 
     def __init__(self, coordinator: TigoTellCoordinator) -> None:
+        """Initialize the panel count sensor."""
         super().__init__(coordinator, "Reporting panels", "reporting_panels", "mdi:solar-panel")
 
     @property
     def native_value(self) -> int:
+        """Return number of reporting panels."""
         return len(self.coordinator.data.panels)
