@@ -22,7 +22,6 @@ from homeassistant.const import (
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -94,7 +93,7 @@ DESCRIPTIONS = (
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: Callable
+    _hass: HomeAssistant, entry: ConfigEntry, async_add_entities: Callable
 ) -> None:
     """Set up TigoTell sensors."""
     runtime: TigoTellRuntimeData = entry.runtime_data
@@ -104,21 +103,13 @@ async def async_setup_entry(
     @callback
     def add_new_panels() -> None:
         """Add entities for newly discovered panels."""
-        registry = er.async_get(hass)
         new_entities = []
 
         for panel in coordinator.data.panels if coordinator.data else ():
             for description in DESCRIPTIONS:
                 key = (panel.barcode, description.key)
+
                 if key in known:
-                    continue
-
-                unique_id = f"{panel.barcode}_{description.key}"
-
-                # EntityRegistry uses `platform` for the integration domain.
-                # `platform_domain` does not exist in HA Core 2026.9.3.
-                if registry.async_get_entity_id("sensor", DOMAIN, unique_id):
-                    known.add(key)
                     continue
 
                 new_entities.append(TigoPanelSensor(coordinator, panel.barcode, description))
