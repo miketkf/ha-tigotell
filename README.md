@@ -60,17 +60,15 @@ The default polling interval is 10 seconds. TigoTell itself controls how often i
 
 ## Dashboard examples
 
-Two dashboard examples are included under `examples/`.
+The `examples/` directory contains a sections dashboard and its custom panel card.
 
-### Recommended overview
+### Panel card dashboard
 
-`examples/dashboard-tigotell-overview.yaml` is a simple responsive dashboard using built-in Home Assistant cards. It shows total current power and all panel power values.
+`examples/dashboard-tigotell-overview.yaml` uses `custom:tigotell-panel-card` to show each panel's power and data age, plus badges for total panel power and reporting panels. The sample uses anonymized panel identifiers. Replace each `0000000000000001` through `0000000000000011` identifier in the entity IDs and `barcode` values with the matching barcode from your installation.
 
-### Taptap-style dashboard
+To install the custom card, copy `examples/tigotell-panel-card.js` to your Home Assistant `www` directory (for example, `/config/www/tigotell-panel-card.js`), then add `/local/tigotell-panel-card.js` as a JavaScript module resource in your dashboard's resources. Paste the YAML into a dashboard's raw configuration editor.
 
-`examples/dashboard-tigotell-taptap-style.yaml` adapts the supplied taptap dashboard pattern: four-column responsive panel power gauges plus a second section showing each panel's last-update time. The original dashboard used 17 panels, so this example is populated for the 17 panels present in the supplied TigoTell snapshot. The original layout's mobile/desktop behavior is retained.
-
-The original dashboard used per-panel power and timestamp sensors plus overall daily energy and total power badges. TigoTell's `/json` endpoint does not expose accumulated daily energy, so the adapted dashboard uses **Total panel power** and **Reporting panels** instead. Add a separate inverter/energy integration if daily energy is required.
+TigoTell's `/json` endpoint does not expose accumulated daily energy. Add a separate inverter/energy integration if daily energy is required.
 
 ### Creating your own dashboard
 
