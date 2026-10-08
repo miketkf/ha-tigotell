@@ -7,22 +7,19 @@ class TigoTellPanelCard extends HTMLElement {
   }
 
   setConfig(config) {
-    if (!config.entity) {
-      throw new Error("TigoTell Panel Card requires an entity");
-    }
-
     this._config = {
+      title: "Solar panels",
       min: 0,
       max: 390,
-      needle: false,
+      ...config,
       severity: {
         green: 200,
         yellow: 100,
         red: 0,
+        ...(config.severity || {}),
       },
-      ...config,
+      aliases: { ...(config.aliases || {}) },
     };
-
     this.render();
   }
 
@@ -31,36 +28,16 @@ class TigoTellPanelCard extends HTMLElement {
     this.render();
   }
 
-  get aliases() {
-    return {
-      "0000000000000001": "B1",
-      "0000000000000002": "B2",
-      "0000000000000003": "B3",
-      "0000000000000004": "B4",
-      "0000000000000005": "B5",
-      "0000000000000006": "B6",
-      "0000000000000007": "B7",
-      "0000000000000008": "B8",
-      "0000000000000009": "B9",
-      "000000000000000A": "B10",
-      "000000000000000B": "B11",
-      "000000000000000C": "B12",
-      "000000000000000D": "B13",
-      "000000000000000E": "B14",
-      "000000000000000F": "B15",
-      "0000000000000010": "B16",
-      "0000000000000011": "B17",
-    };
+  static getConfigElement() {
+    return document.createElement("tigotell-panel-card-editor");
   }
 
-  getAlias(barcode) {
-    if (!barcode) {
-      return "-";
-    }
+  static getStubConfig() {
+    return { type: "custom:tigotell-panel-card" };
+  }
 
-    const normalized = String(barcode).toUpperCase();
-
-    return this.aliases[normalized] || normalized.slice(-4);
+  getCardSize() {
+    return Math.max(3, Math.ceil(discoverPanels(this._hass).length / 3) * 3);
   }
 
   formatAge(seconds) {
@@ -75,42 +52,22 @@ class TigoTellPanelCard extends HTMLElement {
     }
 
     if (age < 3600) {
-      const minutes = Math.floor(age / 60);
-      const secs = Math.round(age % 60);
-
-      return `${minutes}m ${secs}s`;
+      return `${Math.floor(age / 60)}m ${Math.round(age % 60)}s`;
     }
 
-    const hours = Math.floor(age / 3600);
-    const minutes = Math.floor((age % 3600) / 60);
-
-    return `${hours}h ${minutes}m`;
+    return `${Math.floor(age / 3600)}h ${Math.floor((age % 3600) / 60)}m`;
   }
 
   getColor(power) {
-    const severity = this._config.severity;
-
-    if (power >= severity.green) {
+    if (power >= this._config.severity.green) {
       return "var(--success-color, #4caf50)";
     }
 
-    if (power >= severity.yellow) {
+    if (power >= this._config.severity.yellow) {
       return "var(--warning-color, #ff9800)";
     }
 
     return "var(--error-color, #f44336)";
-  }
-
-  getBarcode() {
-    if (this._config.barcode) {
-      return this._config.barcode;
-    }
-
-    const match = this._config.entity.match(
-      /^sensor\.tigo_panel_([a-f0-9]+)_power$/i
-    );
-
-    return match ? match[1] : null;
   }
 
   render() {
@@ -118,111 +75,117 @@ class TigoTellPanelCard extends HTMLElement {
       return;
     }
 
-    const powerState = this._hass.states[this._config.entity];
+    const panels = discoverPanels(this._hass);
 
-    if (!powerState) {
+    if (panels.length === 0) {
       this.shadowRoot.innerHTML = `
         <style>
           ha-card {
             padding: 20px;
-          }
-
-          .error {
-            color: var(--error-color);
+            color: var(--secondary-text-color);
           }
         </style>
-
-        <ha-card>
-          <div class="error">Entity not found</div>
-        </ha-card>
+        <ha-card>No TigoTell panels found</ha-card>
       `;
-
       return;
     }
 
-    const power = Number(powerState.state);
-    const unit = powerState.attributes.unit_of_measurement || "W";
-
-    let age = null;
-
-    if (this._config.age_entity) {
-      const ageState = this._hass.states[this._config.age_entity];
-
-      if (ageState) {
-        age = Number(ageState.state);
-      }
-    }
-
-    const barcode = this.getBarcode();
-    const alias = this._config.alias || this.getAlias(barcode);
     const min = Number(this._config.min);
     const max = Number(this._config.max);
-    const percentage =
-      max > min
-        ? Math.max(0, Math.min(1, (power - min) / (max - min)))
-        : 0;
+    const cards = panels
+      .map((panel, index) => {
+        const power = Number(panel.powerState.state);
+        const unit = panel.powerState.attributes.unit_of_measurement || "W";
+        const alias = this._config.aliases[panel.barcode] || `Panel ${index + 1}`;
+        const percentage =
+          max > min
+            ? Math.max(0, Math.min(1, (power - min) / (max - min)))
+            : 0;
+        const radius = 78;
+        const arcLength = Math.PI * radius;
+        const arcPath = `M 22 105 A ${radius} ${radius} 0 0 1 178 105`;
+        const age = panel.ageState ? panel.ageState.state : null;
 
-    const cx = 100;
-    const cy = 105;
-    const radius = 78;
-    const startX = cx - radius;
-    const endX = cx + radius;
-    const arcPath = `M ${startX} ${cy} A ${radius} ${radius} 0 0 1 ${endX} ${cy}`;
-    const arcLength = Math.PI * radius;
-    const valueLength = arcLength * percentage;
-    const color = this.getColor(power);
+        return `
+          <article class="panel">
+            <div class="gauge">
+              <svg viewBox="0 0 200 125" aria-hidden="true">
+                <path d="${arcPath}" fill="none" stroke="var(--divider-color)" stroke-width="30" opacity="0.25" />
+                <path d="${arcPath}" fill="none" stroke="${this.getColor(power)}" stroke-width="30" stroke-dasharray="${arcLength * percentage} ${arcLength}" />
+              </svg>
+              <div class="value">
+                ${Number.isFinite(power) ? `${Math.round(power)} ${escapeHtml(unit)}` : "-"}
+              </div>
+            </div>
+            <div class="details">
+              <span class="alias">${escapeHtml(alias)}</span>
+              <span class="separator">|</span>
+              <span class="age">${this.formatAge(age)}</span>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
 
     this.shadowRoot.innerHTML = `
       <style>
         :host {
           display: block;
-          height: 100%;
         }
 
         ha-card {
           box-sizing: border-box;
-          height: 100%;
           overflow: hidden;
         }
 
-        .card {
-          box-sizing: border-box;
-          width: 100%;
-          height: 100%;
-          padding: 10px 12px 8px;
+        header {
+          padding: 16px 16px 0;
+          font-size: 16px;
+          font-weight: 500;
+        }
+
+        .panels {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+          gap: 8px;
+          padding: 8px;
+        }
+
+        .panel {
+          min-width: 0;
+          padding: 8px 6px;
           text-align: center;
         }
 
         .gauge {
           position: relative;
-          width: 100%;
-          height: 175px;
+          height: 145px;
         }
 
         svg {
           display: block;
           width: 100%;
-          height: 175px;
+          height: 145px;
           overflow: visible;
         }
 
         .value {
           position: absolute;
-          left: 0;
+          top: 75px;
           right: 0;
-          top: 91px;
-          font-size: 36px;
-          font-weight: 400;
+          left: 0;
+          font-size: 30px;
           line-height: 1;
           color: var(--primary-text-color);
         }
 
         .details {
-          margin-top: -1px;
+          overflow: hidden;
           font-size: 14px;
           line-height: 20px;
           color: var(--primary-text-color);
           white-space: nowrap;
+          text-overflow: ellipsis;
         }
 
         .alias {
@@ -238,45 +201,183 @@ class TigoTellPanelCard extends HTMLElement {
           opacity: 0.75;
         }
       </style>
-
       <ha-card>
-        <div class="card">
-          <div class="gauge">
-            <svg viewBox="0 0 200 125">
-              <path
-                d="${arcPath}"
-                fill="none"
-                stroke="var(--divider-color)"
-                stroke-width="30"
-                stroke-linecap="butt"
-                opacity="0.25"
-              />
-              <path
-                d="${arcPath}"
-                fill="none"
-                stroke="${color}"
-                stroke-width="30"
-                stroke-linecap="butt"
-                stroke-dasharray="${valueLength} ${arcLength}"
-              />
-            </svg>
-            <div class="value">
-              ${Number.isFinite(power) ? `${Math.round(power)} ${unit}` : "-"}
-            </div>
-          </div>
-          <div class="details">
-            <span class="alias">${alias}</span>
-            <span class="separator">|</span>
-            <span class="age">${this.formatAge(age)}</span>
-          </div>
-        </div>
+        <header>${escapeHtml(this._config.title)}</header>
+        <div class="panels">${cards}</div>
       </ha-card>
     `;
   }
+}
 
-  getCardSize() {
-    return 3;
+function discoverPanels(hass) {
+  const states = Object.entries(hass?.states || {});
+  const ageByBarcode = new Map();
+
+  for (const [, state] of states) {
+    const barcode = state.attributes?.barcode;
+
+    if (barcode && state.attributes.unit_of_measurement === "s") {
+      ageByBarcode.set(String(barcode).toUpperCase(), state);
+    }
+  }
+
+  return states
+    .filter(
+      ([entityId, state]) =>
+        entityId.startsWith("sensor.") &&
+        state.attributes?.device_class === "power" &&
+        state.attributes?.barcode
+    )
+    .map(([entityId, powerState]) => {
+      const barcode = String(powerState.attributes.barcode).toUpperCase();
+
+      return {
+        barcode,
+        entityId,
+        powerState,
+        ageState: ageByBarcode.get(barcode),
+      };
+    })
+    .sort((left, right) => left.barcode.localeCompare(right.barcode));
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => {
+    const entities = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+
+    return entities[character];
+  });
+}
+
+class TigoTellPanelCardEditor extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this._hass = null;
+    this._config = { aliases: {} };
+  }
+
+  setConfig(config) {
+    this._config = { ...config, aliases: { ...(config.aliases || {}) } };
+    this.render();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this.render();
+  }
+
+  render() {
+    if (!this._hass) {
+      return;
+    }
+
+    const panels = discoverPanels(this._hass);
+    const rows = panels
+      .map((panel, index) => {
+        const alias = this._config.aliases[panel.barcode] || "";
+
+        return `
+          <label class="row">
+            <span class="barcode">${escapeHtml(panel.barcode)}</span>
+            <input
+              type="text"
+              data-barcode="${escapeHtml(panel.barcode)}"
+              value="${escapeHtml(alias)}"
+              placeholder="Panel ${index + 1}"
+              aria-label="Alias for panel ${escapeHtml(panel.barcode)}"
+            />
+          </label>
+        `;
+      })
+      .join("");
+
+    this.shadowRoot.innerHTML = `
+      <style>
+        :host {
+          display: block;
+          color: var(--primary-text-color);
+        }
+
+        p {
+          color: var(--secondary-text-color);
+        }
+
+        .row {
+          display: grid;
+          grid-template-columns: minmax(120px, 1fr) minmax(140px, 2fr);
+          gap: 12px;
+          align-items: center;
+          padding: 8px 0;
+          border-bottom: 1px solid var(--divider-color);
+        }
+
+        .barcode {
+          overflow-wrap: anywhere;
+          font-family: var(--code-font-family, monospace);
+          font-size: 13px;
+        }
+
+        input {
+          box-sizing: border-box;
+          width: 100%;
+          min-height: 40px;
+          padding: 8px 10px;
+          border: 1px solid var(--outline-color, var(--divider-color));
+          border-radius: 4px;
+          background: var(--input-fill-color, var(--card-background-color));
+          color: var(--primary-text-color);
+          font: inherit;
+        }
+
+        input:focus {
+          outline: 2px solid var(--primary-color);
+          outline-offset: 1px;
+        }
+
+        @media (max-width: 480px) {
+          .row {
+            grid-template-columns: 1fr;
+            gap: 4px;
+          }
+        }
+      </style>
+      <div>
+        <p>Set an alias for each discovered TigoTell panel.</p>
+        ${rows || "<p>No TigoTell panels found.</p>"}
+      </div>
+    `;
+
+    this.shadowRoot.querySelectorAll("input[data-barcode]").forEach((input) => {
+      input.addEventListener("change", () => {
+        const aliases = { ...this._config.aliases };
+        const barcode = input.dataset.barcode;
+        const alias = input.value.trim();
+
+        if (alias) {
+          aliases[barcode] = alias;
+        } else {
+          delete aliases[barcode];
+        }
+
+        this._config = { ...this._config, aliases };
+        this.dispatchEvent(
+          new CustomEvent("config-changed", {
+            detail: { config: this._config },
+            bubbles: true,
+            composed: true,
+          })
+        );
+      });
+    });
   }
 }
 
+customElements.define("tigotell-panel-card-editor", TigoTellPanelCardEditor);
 customElements.define("tigotell-panel-card", TigoTellPanelCard);

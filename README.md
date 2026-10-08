@@ -64,9 +64,9 @@ The `examples/` directory contains a sections dashboard and its custom panel car
 
 ### Panel card dashboard
 
-`examples/dashboard-tigotell-overview.yaml` uses `custom:tigotell-panel-card` to show each panel's power and data age, plus badges for total panel power and reporting panels. The sample uses anonymized panel identifiers. Replace each `0000000000000001` through `0000000000000011` identifier in the entity IDs and `barcode` values with the matching barcode from your installation.
+`examples/dashboard-tigotell-overview.yaml` uses one `custom:tigotell-panel-card` to automatically discover every TigoTell panel and show its power and data age, plus badges for total panel power and reporting panels. Set panel aliases in the card's visual editor; newly discovered panels appear there automatically.
 
-To install the custom card, copy `examples/tigotell-panel-card.js` to your Home Assistant `www` directory (for example, `/config/www/tigotell-panel-card.js`), then add `/local/tigotell-panel-card.js` as a JavaScript module resource in your dashboard's resources. Paste the YAML into a dashboard's raw configuration editor.
+To install the custom card, copy `examples/tigotell-panel-card.js` to your Home Assistant `www` directory (for example, `/config/www/tigotell-panel-card.js`), then add `/local/tigotell-panel-card.js` as a JavaScript module resource in your dashboard's resources. Paste the YAML into a dashboard's raw configuration editor; the panel list and aliases require no per-panel YAML.
 
 TigoTell's `/json` endpoint does not expose accumulated daily energy. Add a separate inverter/energy integration if daily energy is required.
 
@@ -74,9 +74,9 @@ TigoTell's `/json` endpoint does not expose accumulated daily energy. Add a sepa
 
 1. Create a new dashboard in **Settings → Dashboards**.
 2. Add a **Sections** view.
-3. Add cards for the panel Power entities.
-4. Use the panel's friendly device name after renaming it in the device registry.
-5. The example YAML can be pasted into the dashboard's raw configuration editor and then adjusted to your panel names/entities.
+3. Add the TigoTell panel card from the custom cards list.
+4. Assign panel aliases in the card's visual editor.
+5. The example YAML can be pasted into the dashboard's raw configuration editor and adjusted as needed.
 
 ## Development
 
