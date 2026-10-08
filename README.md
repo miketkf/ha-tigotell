@@ -58,15 +58,13 @@ Before publishing this repository, publish `tigotell_client/` as `tigotell-clien
 
 The default polling interval is 10 seconds. TigoTell itself controls how often it receives and stores frames; the integration only reads the latest snapshot. No history database is required.
 
-## Dashboard examples
+## Dashboard card
 
-The `examples/` directory contains a sections dashboard and its custom panel card.
+The [`dashboard/`](dashboard/) folder contains the Lovelace card package and a dashboard YAML example. It is staged to be published as a separate HACS **Dashboard** repository; it is not installed by adding this repository as the TigoTell **Integration**.
 
-### Panel card dashboard
+To publish the card through HACS, copy the contents of `dashboard/` to the root of a new public GitHub repository named `lovelace-tigotell-panel-card`, publish GitHub releases for card versions, and add that repository to HACS as a **Dashboard** repository. The card requires the TigoTell integration to be installed separately. See [`dashboard/README.md`](dashboard/README.md) for the package installation steps.
 
-`examples/dashboard-tigotell-overview.yaml` uses one `custom:tigotell-panel-card` to automatically discover every TigoTell panel and show its power and data age, plus badges for total panel power and reporting panels. Set panel aliases and arrange panel order in the card's visual editor; newly discovered panels appear there automatically.
-
-To install the custom card, copy `examples/tigotell-panel-card.js` to your Home Assistant `www` directory (for example, `/config/www/tigotell-panel-card.js`), then add `/local/tigotell-panel-card.js` as a JavaScript module resource in your dashboard's resources. Paste the YAML into a dashboard's raw configuration editor; the panel list and aliases require no per-panel YAML.
+The example [`dashboard/examples/dashboard-tigotell-overview.yaml`](dashboard/examples/dashboard-tigotell-overview.yaml) uses one `custom:tigotell-panel-card` to discover panels automatically and show power and data age, with badges for total panel power and reporting panels. Import or paste the YAML into a dashboard's raw configuration editor; the dashboard YAML is not installed by HACS.
 
 TigoTell's `/json` endpoint does not expose accumulated daily energy. Add a separate inverter/energy integration if daily energy is required.
 
@@ -74,7 +72,7 @@ TigoTell's `/json` endpoint does not expose accumulated daily energy. Add a sepa
 
 1. Create a new dashboard in **Settings → Dashboards**.
 2. Add a **Sections** view.
-3. Add the TigoTell panel card from the custom cards list.
+3. Install the TigoTell Panel Card separately, then add it from the custom cards list.
 4. Assign panel aliases in the card's visual editor.
 5. The example YAML can be pasted into the dashboard's raw configuration editor and adjusted as needed.
 
