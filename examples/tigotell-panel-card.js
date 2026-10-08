@@ -19,6 +19,7 @@ class TigoTellPanelCard extends HTMLElement {
         ...(config.severity || {}),
       },
       aliases: { ...(config.aliases || {}) },
+      panel_order: [...(config.panel_order || [])],
     };
     this.render();
   }
@@ -75,7 +76,7 @@ class TigoTellPanelCard extends HTMLElement {
       return;
     }
 
-    const panels = discoverPanels(this._hass);
+    const panels = discoverPanels(this._hass, this._config.panel_order);
 
     if (panels.length === 0) {
       this.shadowRoot.innerHTML = `
@@ -209,7 +210,7 @@ class TigoTellPanelCard extends HTMLElement {
   }
 }
 
-function discoverPanels(hass) {
+function discoverPanels(hass, preferredOrder = []) {
   const states = Object.entries(hass?.states || {});
   const ageByBarcode = new Map();
 
@@ -238,7 +239,24 @@ function discoverPanels(hass) {
         ageState: ageByBarcode.get(barcode),
       };
     })
-    .sort((left, right) => left.barcode.localeCompare(right.barcode));
+    .sort((left, right) => {
+      const leftPosition = preferredOrder.indexOf(left.barcode);
+      const rightPosition = preferredOrder.indexOf(right.barcode);
+
+      if (leftPosition === -1 && rightPosition !== -1) {
+        return 1;
+      }
+
+      if (rightPosition === -1 && leftPosition !== -1) {
+        return -1;
+      }
+
+      if (leftPosition !== rightPosition) {
+        return leftPosition - rightPosition;
+      }
+
+      return left.barcode.localeCompare(right.barcode);
+    });
 }
 
 function escapeHtml(value) {
@@ -260,17 +278,34 @@ class TigoTellPanelCardEditor extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" });
     this._hass = null;
-    this._config = { aliases: {} };
+    this._config = { aliases: {}, panel_order: [] };
+    this._panelSignature = null;
   }
 
   setConfig(config) {
-    this._config = { ...config, aliases: { ...(config.aliases || {}) } };
+    this._config = {
+      ...config,
+      aliases: { ...(config.aliases || {}) },
+      panel_order: [...(config.panel_order || [])],
+    };
+    this._panelSignature = this._hass
+      ? discoverPanels(this._hass, this._config.panel_order)
+          .map((panel) => panel.barcode)
+          .join(",")
+      : null;
     this.render();
   }
 
   set hass(hass) {
     this._hass = hass;
-    this.render();
+    const panelSignature = discoverPanels(hass, this._config.panel_order)
+      .map((panel) => panel.barcode)
+      .join(",");
+
+    if (panelSignature !== this._panelSignature) {
+      this._panelSignature = panelSignature;
+      this.render();
+    }
   }
 
   render() {
@@ -278,13 +313,13 @@ class TigoTellPanelCardEditor extends HTMLElement {
       return;
     }
 
-    const panels = discoverPanels(this._hass);
+    const panels = discoverPanels(this._hass, this._config.panel_order);
     const rows = panels
       .map((panel, index) => {
         const alias = this._config.aliases[panel.barcode] || "";
 
         return `
-          <label class="row">
+          <div class="row">
             <span class="barcode">${escapeHtml(panel.barcode)}</span>
             <input
               type="text"
@@ -293,7 +328,25 @@ class TigoTellPanelCardEditor extends HTMLElement {
               placeholder="Panel ${index + 1}"
               aria-label="Alias for panel ${escapeHtml(panel.barcode)}"
             />
-          </label>
+            <div class="move-controls">
+              <button
+                type="button"
+                data-move="-1"
+                data-barcode="${escapeHtml(panel.barcode)}"
+                aria-label="Move panel ${escapeHtml(panel.barcode)} up"
+                title="Move up"
+                ${index === 0 ? "disabled" : ""}
+              >&#8593;</button>
+              <button
+                type="button"
+                data-move="1"
+                data-barcode="${escapeHtml(panel.barcode)}"
+                aria-label="Move panel ${escapeHtml(panel.barcode)} down"
+                title="Move down"
+                ${index === panels.length - 1 ? "disabled" : ""}
+              >&#8595;</button>
+            </div>
+          </div>
         `;
       })
       .join("");
@@ -311,7 +364,7 @@ class TigoTellPanelCardEditor extends HTMLElement {
 
         .row {
           display: grid;
-          grid-template-columns: minmax(120px, 1fr) minmax(140px, 2fr);
+          grid-template-columns: minmax(120px, 1fr) minmax(140px, 2fr) auto;
           gap: 12px;
           align-items: center;
           padding: 8px 0;
@@ -341,10 +394,35 @@ class TigoTellPanelCardEditor extends HTMLElement {
           outline-offset: 1px;
         }
 
+        .move-controls {
+          display: flex;
+          gap: 4px;
+        }
+
+        button {
+          width: 36px;
+          height: 36px;
+          border: 1px solid var(--divider-color);
+          border-radius: 4px;
+          background: var(--card-background-color);
+          color: var(--primary-text-color);
+          font: inherit;
+          cursor: pointer;
+        }
+
+        button:disabled {
+          opacity: 0.4;
+          cursor: default;
+        }
+
         @media (max-width: 480px) {
           .row {
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(0, 1fr) auto;
             gap: 4px;
+          }
+
+          .barcode {
+            grid-column: 1 / -1;
           }
         }
       </style>
@@ -367,15 +445,41 @@ class TigoTellPanelCardEditor extends HTMLElement {
         }
 
         this._config = { ...this._config, aliases };
-        this.dispatchEvent(
-          new CustomEvent("config-changed", {
-            detail: { config: this._config },
-            bubbles: true,
-            composed: true,
-          })
-        );
+        this.dispatchConfigChanged();
       });
     });
+
+    this.shadowRoot.querySelectorAll("button[data-move]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const panels = discoverPanels(this._hass, this._config.panel_order);
+        const panelOrder = panels.map((panel) => panel.barcode);
+        const currentIndex = panelOrder.indexOf(button.dataset.barcode);
+        const nextIndex = currentIndex + Number(button.dataset.move);
+
+        if (currentIndex < 0 || nextIndex < 0 || nextIndex >= panelOrder.length) {
+          return;
+        }
+
+        [panelOrder[currentIndex], panelOrder[nextIndex]] = [
+          panelOrder[nextIndex],
+          panelOrder[currentIndex],
+        ];
+        this._config = { ...this._config, panel_order: panelOrder };
+        this._panelSignature = panelOrder.join(",");
+        this.render();
+        this.dispatchConfigChanged();
+      });
+    });
+  }
+
+  dispatchConfigChanged() {
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: { config: this._config },
+        bubbles: true,
+        composed: true,
+      })
+    );
   }
 }
 

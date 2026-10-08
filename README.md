@@ -64,7 +64,7 @@ The `examples/` directory contains a sections dashboard and its custom panel car
 
 ### Panel card dashboard
 
-`examples/dashboard-tigotell-overview.yaml` uses one `custom:tigotell-panel-card` to automatically discover every TigoTell panel and show its power and data age, plus badges for total panel power and reporting panels. Set panel aliases in the card's visual editor; newly discovered panels appear there automatically.
+`examples/dashboard-tigotell-overview.yaml` uses one `custom:tigotell-panel-card` to automatically discover every TigoTell panel and show its power and data age, plus badges for total panel power and reporting panels. Set panel aliases and arrange panel order in the card's visual editor; newly discovered panels appear there automatically.
 
 To install the custom card, copy `examples/tigotell-panel-card.js` to your Home Assistant `www` directory (for example, `/config/www/tigotell-panel-card.js`), then add `/local/tigotell-panel-card.js` as a JavaScript module resource in your dashboard's resources. Paste the YAML into a dashboard's raw configuration editor; the panel list and aliases require no per-panel YAML.
 
