@@ -32,11 +32,13 @@ The barcode remains the stable identifier, but users do not have to live with ba
 
 ## Installation
 
-### HACS
+### Marketplace (formerly HACS)
 
-The integration is designed to be installed as a custom HACS repository until it is accepted into the normal HACS/default repository flow.
+[![Open your Home Assistant instance and open a repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=miketkf&repository=ha-tigotell&category=integration)
 
-1. In Home Assistant open **HACS → Integrations**.
+The integration is designed to be installed as a custom Marketplace repository until it is accepted into the normal Marketplace/HACS default repository flow.
+
+1. In Home Assistant, open **Settings → Marketplace**.
 2. Open the three-dot menu and choose **Custom repositories**.
 3. Add the GitHub repository URL for this project.
 4. Select **Integration** as the category.
