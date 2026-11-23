@@ -22,6 +22,8 @@ from homeassistant.const import (
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -92,20 +94,125 @@ DESCRIPTIONS = (
 )
 
 
+@callback
+def async_migrate_panel_ids(
+    hass: HomeAssistant,
+    config_entry_id: str,
+    panels: tuple[TigoPanel, ...],
+) -> bool:
+    """Migrate legacy panel unique IDs and device identifiers to canonical barcodes."""
+    device_reg = dr.async_get(hass)
+    entity_reg = er.async_get(hass)
+    migrated = False
+
+    for panel in panels:
+        node_id = f"node-{panel.pv_node_id:04d}"
+        if panel.barcode == node_id:
+            continue
+
+        legacy_ids: list[str] = []
+        if panel.long_address and panel.long_address not in (panel.barcode, node_id):
+            legacy_ids.append(panel.long_address)
+        legacy_ids.append(node_id)
+        candidates = [*legacy_ids, panel.barcode]
+
+        for description in DESCRIPTIONS:
+            matched: list[tuple[str, er.RegistryEntry]] = []
+            for cand in candidates:
+                ent_id = entity_reg.async_get_entity_id(
+                    "sensor", DOMAIN, f"{cand}_{description.key}"
+                )
+                if ent_id is None:
+                    continue
+                ent_entry = entity_reg.async_get(ent_id)
+                if ent_entry is not None and ent_entry.config_entry_id == config_entry_id:
+                    matched.append((cand, ent_entry))
+
+            if not matched:
+                continue
+
+            winner_cand, winner_entry = matched[0]
+            if winner_cand == panel.barcode and len(matched) == 1:
+                continue
+
+            for _, dup_entry in matched[1:]:
+                entity_reg.async_remove(dup_entry.entity_id)
+                migrated = True
+
+            if winner_cand != panel.barcode:
+                entity_reg.async_update_entity(
+                    winner_entry.entity_id,
+                    new_unique_id=f"{panel.barcode}_{description.key}",
+                )
+                migrated = True
+
+        matched_devices: list[tuple[str, dr.DeviceEntry]] = []
+        seen_device_ids: set[str] = set()
+        for cand in candidates:
+            dev = device_reg.async_get_device_by_identifier((DOMAIN, cand), config_entry_id)
+            if dev is not None and dev.id not in seen_device_ids:
+                seen_device_ids.add(dev.id)
+                matched_devices.append((cand, dev))
+
+        if matched_devices:
+            winner_cand, winner_device = matched_devices[0]
+            for _, dup_device in matched_devices[1:]:
+                for entity_entry in er.async_entries_for_device(
+                    entity_reg, dup_device.id, include_disabled_entities=True
+                ):
+                    if entity_entry.config_entry_id == config_entry_id:
+                        entity_reg.async_update_entity(
+                            entity_entry.entity_id, device_id=winner_device.id
+                        )
+                device_reg.async_remove_device(dup_device.id)
+                migrated = True
+
+            if winner_cand != panel.barcode:
+                device_reg.async_update_device(
+                    winner_device.id,
+                    new_identifiers={(DOMAIN, panel.barcode)},
+                    name=f"Tigo Panel {panel.barcode}",
+                )
+                migrated = True
+
+    return migrated
+
+
 async def async_setup_entry(
-    _hass: HomeAssistant, entry: ConfigEntry, async_add_entities: Callable
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: Callable
 ) -> None:
     """Set up TigoTell sensors."""
     runtime: TigoTellRuntimeData = entry.runtime_data
     coordinator = runtime.coordinator
     known: set[tuple[str, str]] = set()
+    checked_panels: set[tuple[str, str | None, int]] = set()
+    reloading = False
 
     @callback
     def add_new_panels() -> None:
         """Add entities for newly discovered panels."""
+        nonlocal reloading
+        if not coordinator.data or reloading:
+            return
+
+        unchecked = tuple(
+            p
+            for p in coordinator.data.panels
+            if (p.barcode, p.long_address, p.pv_node_id) not in checked_panels
+        )
+        if unchecked:
+            had_known = bool(known)
+            migrated = async_migrate_panel_ids(hass, entry.entry_id, unchecked)
+            if migrated and had_known:
+                reloading = True
+                hass.async_create_task(hass.config_entries.async_reload(entry.entry_id))
+                return
+            for p in unchecked:
+                checked_panels.add((p.barcode, p.long_address, p.pv_node_id))
+
         new_entities = []
 
-        for panel in coordinator.data.panels if coordinator.data else ():
+        for panel in coordinator.data.panels:
             for description in DESCRIPTIONS:
                 key = (panel.barcode, description.key)
 
@@ -207,7 +314,7 @@ class TigoPanelSensor(CoordinatorEntity[TigoTellCoordinator], SensorEntity):
         if panel is None:
             return {}
 
-        return {
+        attrs: dict[str, Any] = {
             "barcode": panel.barcode,
             "pv_node_id": panel.pv_node_id,
             "address": panel.address,
@@ -215,6 +322,9 @@ class TigoPanelSensor(CoordinatorEntity[TigoTellCoordinator], SensorEntity):
             "last_updated_ms": panel.last_updated_ms,
             "last_seen_ms": panel.last_seen_ms,
         }
+        if panel.long_address is not None:
+            attrs["long_address"] = panel.long_address
+        return attrs
 
 
 class TigoSystemEntity(CoordinatorEntity[TigoTellCoordinator], SensorEntity):

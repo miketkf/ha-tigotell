@@ -21,6 +21,7 @@ class TigoPanel:
     rssi: int
     last_updated_ms: int
     last_seen_ms: int | None = None
+    long_address: str | None = None
 
     @property
     def power(self) -> float:
@@ -76,6 +77,7 @@ def parse_snapshot(payload: dict[str, Any]) -> TigoTellData:
                 last_seen_ms=(
                     int(node["last_seen_ms"]) if node.get("last_seen_ms") is not None else None
                 ),
+                long_address=str(node["long_address"]) if node.get("long_address") else None,
             )
         )
     panels.sort(key=lambda panel: panel.barcode)
